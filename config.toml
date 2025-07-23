@@ -1,0 +1,35 @@
+baseURL = "https://peter0x44.github.io/"
+languageCode = "en-us"
+title = "File Descriptor Two"
+theme = "PaperMod"
+copyright = "© 2025 Peter0x44"
+
+[params]
+  showReadingTime = true
+  showShareButtons = false
+  showPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowCodeCopyButtons = true
+  ShowRssButtonInSectionTermList = true
+
+[params.footer]
+  text = ""
+
+[params.homeInfoParams]
+  Title = "File Descriptor Two"
+  Content = "Peter0x44's technical musings"
+
+[menu]
+  [[menu.main]]
+    identifier = "home"
+    name = "Home"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    identifier = "posts"
+    name = "Posts"
+    url = "/posts/"
+    weight = 2
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
