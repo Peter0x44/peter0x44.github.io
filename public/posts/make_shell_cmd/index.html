@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Make, shells and polyglot tests - How to write a cross-shell clean target. | File Descriptor Two</title>
+<meta name="keywords" content="">
+<meta name="description" content="When executing various Makefiles with w64devkit, you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional clean target, which uses del.exe and will only work under cmd.exe.
+make clean
+del *.o /s
+sh: del: not found
+make: *** [Makefile:734: clean] Error 127
+Confusingly, even if you then open cmd.exe and run make clean from there, you still get the same error!">
+<meta name="author" content="">
+<link rel="canonical" href="../../posts/make_shell_cmd/">
+<link crossorigin="anonymous" href="../../assets/css/stylesheet.8fe10233a706bc87f2e08b3cf97b8bd4c0a80f10675a143675d59212121037c0.css" integrity="sha256-j&#43;ECM6cGvIfy4Is8&#43;XuL1MCoDxBnWhQ2ddWSEhIQN8A=" rel="preload stylesheet" as="style">
+<link rel="icon" href="../../favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="../../favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32x32.png">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="mask-icon" href="../../safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="../../posts/make_shell_cmd/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/make_shell_cmd/">
+  <meta property="og:site_name" content="File Descriptor Two">
+  <meta property="og:title" content="Make, shells and polyglot tests - How to write a cross-shell clean target.">
+  <meta property="og:description" content="When executing various Makefiles with w64devkit, you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional clean target, which uses del.exe and will only work under cmd.exe.
+make cleandel *.o /ssh: del: not foundmake: *** [Makefile:734: clean] Error 127 Confusingly, even if you then open cmd.exe and run make clean from there, you still get the same error!">
+  <meta property="og:locale" content="en-us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-07-22T12:00:00+00:00">
+    <meta property="article:modified_time" content="2025-07-22T12:00:00+00:00">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Make, shells and polyglot tests - How to write a cross-shell clean target.">
+<meta name="twitter:description" content="When executing various Makefiles with w64devkit, you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional clean target, which uses del.exe and will only work under cmd.exe.
+make clean
+del *.o /s
+sh: del: not found
+make: *** [Makefile:734: clean] Error 127
+Confusingly, even if you then open cmd.exe and run make clean from there, you still get the same error!">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Make, shells and polyglot tests - How to write a cross-shell clean target.",
+      "item": "/posts/make_shell_cmd/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Make, shells and polyglot tests - How to write a cross-shell clean target.",
+  "name": "Make, shells and polyglot tests - How to write a cross-shell clean target.",
+  "description": "When executing various Makefiles with w64devkit, you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional clean target, which uses del.exe and will only work under cmd.exe.\nmake clean\rdel *.o /s\rsh: del: not found\rmake: *** [Makefile:734: clean] Error 127 Confusingly, even if you then open cmd.exe and run make clean from there, you still get the same error!\n",
+  "keywords": [
+    
+  ],
+  "articleBody": "When executing various Makefiles with w64devkit, you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional clean target, which uses del.exe and will only work under cmd.exe.\nmake clean\rdel *.o /s\rsh: del: not found\rmake: *** [Makefile:734: clean] Error 127 Confusingly, even if you then open cmd.exe and run make clean from there, you still get the same error!\nThe reason for this is that GNU Make for Windows searches the PATH for an sh.exe before selecting cmd.exe. This is documented in GNU Make’s README.W32:\nGNU Make and sh.exe:\rThis port prefers if you have a working sh.exe somewhere on\ryour system. If you don't have sh.exe, the port falls back to\rMSDOS mode for launching programs (via a batch file). The\rMSDOS mode style execution has not been tested that carefully\rthough (The author uses GNU bash as sh.exe). Until now, I have only referred to make, but mingw32-make (a conventional prefix for several mingw(-w64) toolchains) does not differ in any way but name.\nThe most immediate solution is to run make clean SHELL=cmd. This will work, however it also brings in all the issues and misbehavior that come from cmd.exe itself, and won’t work on some machines. Back in 2020 and 2021, when I was still in school, the computers there specifically had cmd.exe disabled. All it could do was print The command prompt has been disabled by your administrator.. However, busybox sh started through w64devkit functioned just fine! Of course, due to this restriction, none of the Makefiles could use cmd.exe.\nIs there a way we could query what shell is executing build rules for recipes?\nThe answer is yes! Though it requires extensions from GNU Make. I’ve seen buggy code out there that tries to make an attempt, but gets it all wrong.\nBut first, I will clarify what doesn’t work, so you can spot it in code review, or not waste your time testing it.\n1) Checking the presence of $ComSpec\nPremake was trying to do this. This method might even insidiously seem to work, because all the unix-type shells on Windows capitalize environment variables, and GNU Make does case insensitive comparisons. You might think this fact is possible to harness to do shell detection, however, what really ends up being detected is whether the shell that invoked make is cmd or sh, not necessarily what the recipes themselves are executed with. So make clean in cmd.exe with an sh.exe present will be detected as cmd as well.\nUnder every shell I tried, $COMSPEC was present and pointing to cmd.exe. I have not found a single circumstance where this variable differs, even in PowerShell. So I’m not sure it’s a reliable way of detecting anything. I am not sure what it did ever detect, if anything.\nPS C:\\WINDOWS\\system32\u003e echo $env:ComSpec\rC:\\WINDOWS\\system32\\cmd.exe 2) Checking the value of $(SHELL)\nMake does not set this if it is unset. So it can only tell you if the value is being overridden or not, meaning your makefile cannot simply work with make in both circumstances of “have sh.exe” and “don’t have sh.exe”. Setting it in the Makefile itself to signal what shell you would like make to use also does not work.\nNow, on to the method that actually works. Thanks to Kaz Kylheku from the GNU Make mailing list for telling me about this, though later I have talked to several people who seemed to know of this independently. I’ve still never seen it documented on another blog, so I will do so here.\nThe solution is to execute echo as a “polyglot test”. Specifically, it exploits how cmd and sh handle quotes.\nIn cmd.exe, echo \"test\" outputs \"test\" with the quotes included. Under sh.exe, it strips the quotes and outputs just test. We can combine this behavioral difference with GNU make’s Conditional Syntax extension:\nSHELLTYPE=sh\rifeq ($(shell echo \"test\"), \"test\")\rSHELLTYPE=cmd\rendif Then you can use this variable in your clean target:\n.PHONY: clean\rclean:\rifeq ($(SHELLTYPE), sh)\rrm *.o\relse\rdel /q *.o\rendif Now, your clean target will work just fine under both sh.exe and cmd.exe.\nOther Common Cross-Shell Issues\nAnother operation that makefiles use regularly is mkdir. This one coincidentally has a common usage that works identically on Windows and Linux: mkdir . However, mkdir -p is effectively the default behavior on Windows, so if you need the -p flag, you’re back to writing shell-specific commands.\nThe last problematic command that sometimes appears is touch, which has no cmd.exe equivalent I could find. I have no good solution for this one if your Makefile relies on it. Thankfully, it’s rare in practice.\nA Better Build System Design?\nAll of this complexity could have been avoided if common file operations were built-in to make itself, as intrinsics. Ninja, for comparison, requires you to explicitly declare outputs, so it knows exactly what to delete without shell commands.\nHowever, Ninja lacks some of Make’s pleasing “dumbness”, and is much less pleasant to write by hand. If you’re designing a replacement for make, I’d highly suggest limiting shell access and adding built-in operations for at least rm, mkdir, and touch. An escape hatch to the shell might still be needed for some unusual cases, but we shouldn’t need shell commands just to delete a file. The fewer dependencies a build system has, the more robust it will be.\nBonus Debugging Tip\nIf you’re debugging a makefile and want to see exactly what shell commands it runs (and it doesn’t already have verbose output configured), you can use make SHELL=\"sh -x\" to trace it.\n",
+  "wordCount" : "941",
+  "inLanguage": "en",
+  "datePublished": "2025-07-22T12:00:00Z",
+  "dateModified": "2025-07-22T12:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/make_shell_cmd/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "File Descriptor Two",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="../../" accesskey="h" title="File Descriptor Two (Alt + H)">File Descriptor Two</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="../../" title="Home">
+                    <span>Home</span>
+                </a>
+            </li>
+            <li>
+                <a href="../../posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="../../">Home</a>&nbsp;»&nbsp;<a href="../../posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Make, shells and polyglot tests - How to write a cross-shell clean target.
+    </h1>
+    <div class="post-meta"><span title='2025-07-22 12:00:00 +0000 UTC'>July 22, 2025</span>&nbsp;·&nbsp;5 min
+
+</div>
+  </header> 
+  <div class="post-content"><p>When executing various Makefiles with <a href="https://github.com/skeeto/w64devkit">w64devkit</a>, you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional <code>clean</code> target, which uses <code>del.exe</code> and will only work under <code>cmd.exe</code>.</p>
+<pre tabindex="0"><code>make clean
+del *.o /s
+sh: del: not found
+make: *** [Makefile:734: clean] Error 127
+</code></pre><p>Confusingly, even if you then open <code>cmd.exe</code> and run <code>make clean</code> from there, you still get the same error!</p>
+<p>The reason for this is that GNU Make for Windows searches the PATH for an <code>sh.exe</code> before selecting <code>cmd.exe</code>. This is documented in GNU Make&rsquo;s <a href="https://cgit.git.savannah.gnu.org/cgit/make.git/tree/README.W32#n175">README.W32</a>:</p>
+<pre tabindex="0"><code>GNU Make and sh.exe:
+
+        This port prefers if you have a working sh.exe somewhere on
+        your system. If you don&#39;t have sh.exe, the port falls back to
+        MSDOS mode for launching programs (via a batch file).  The
+        MSDOS mode style execution has not been tested that carefully
+        though (The author uses GNU bash as sh.exe).
+</code></pre><p>Until now, I have only referred to <code>make</code>, but <code>mingw32-make</code> (a conventional prefix for several mingw(-w64) toolchains) does not differ in any way but name.</p>
+<p>The most immediate solution is to run <code>make clean SHELL=cmd</code>. This will work, however it also brings in all the issues and misbehavior that come from cmd.exe itself, and won&rsquo;t work on some machines. Back in 2020 and 2021, when I was still in school, the computers there specifically had <code>cmd.exe</code> disabled. All it could do was print <code>The command prompt has been disabled by your administrator.</code>. However, busybox sh started through w64devkit functioned just fine! Of course, due to this restriction, none of the Makefiles could use cmd.exe.</p>
+<p>Is there a way we could query what shell is executing build rules for recipes?</p>
+<p>The answer is yes! Though it requires extensions from GNU Make. I&rsquo;ve seen buggy code out there that tries to make an attempt, but gets it all wrong.</p>
+<p>But first, I will clarify what <em>doesn&rsquo;t</em> work, so you can spot it in code review, or not waste your time testing it.</p>
+<p><strong>1) Checking the presence of $ComSpec</strong></p>
+<p><a href="https://premake.github.io">Premake</a> was trying to do this. This method might even insidiously seem to work, because all the unix-type shells on Windows capitalize environment variables, and GNU Make does case insensitive comparisons. You might think this fact is possible to harness to do shell detection, however, what really ends up being detected is whether the shell that invoked make is cmd or sh, not necessarily what the recipes themselves are executed with. So <code>make clean</code> in cmd.exe with an sh.exe present will be detected as cmd as well.</p>
+<p>Under every shell I tried, $COMSPEC was present and pointing to cmd.exe. I have not found a single circumstance where this variable differs, even in PowerShell. So I&rsquo;m not sure it&rsquo;s a reliable way of detecting anything. I am not sure what it <em>did</em> ever detect, if anything.</p>
+<pre tabindex="0"><code>PS C:\WINDOWS\system32&gt; echo $env:ComSpec
+C:\WINDOWS\system32\cmd.exe
+</code></pre><p><strong>2) Checking the value of $(SHELL)</strong></p>
+<p>Make does not set this if it is unset. So it can only tell you if the value is being overridden or not, meaning your makefile cannot simply work with <code>make</code> in both circumstances of &ldquo;have sh.exe&rdquo; and &ldquo;don&rsquo;t have sh.exe&rdquo;. Setting it in the Makefile itself to signal what shell you would like make to use also does not work.</p>
+<p>Now, on to the method that actually works. Thanks to Kaz Kylheku from the GNU Make mailing list for telling me about this, though later I have talked to several people who seemed to know of this independently. I&rsquo;ve still never seen it documented on another blog, so I will do so here.</p>
+<p>The solution is to execute <code>echo</code> as a &ldquo;polyglot test&rdquo;. Specifically, it exploits how cmd and sh handle quotes.</p>
+<p>In cmd.exe, <code>echo &quot;test&quot;</code> outputs <code>&quot;test&quot;</code> with the quotes included. Under sh.exe, it strips the quotes and outputs just <code>test</code>. We can combine this behavioral difference with GNU make&rsquo;s <a href="https://www.gnu.org/software/make/manual/html_node/Conditional-Syntax.html">Conditional Syntax</a> extension:</p>
+<pre tabindex="0"><code>SHELLTYPE=sh
+ifeq ($(shell echo &#34;test&#34;), &#34;test&#34;)
+    SHELLTYPE=cmd
+endif
+</code></pre><p>Then you can use this variable in your clean target:</p>
+<pre tabindex="0"><code>.PHONY: clean
+clean:
+ifeq ($(SHELLTYPE), sh)
+	rm *.o
+else
+	del /q *.o
+endif
+</code></pre><p>Now, your clean target will work just fine under both sh.exe and cmd.exe.</p>
+<p><strong>Other Common Cross-Shell Issues</strong></p>
+<p>Another operation that makefiles use regularly is <code>mkdir</code>. This one coincidentally has a common usage that works identically on Windows and Linux: <code>mkdir &lt;dir&gt;</code>. However, <code>mkdir -p</code> is effectively the default behavior on Windows, so if you need the <code>-p</code> flag, you&rsquo;re back to writing shell-specific commands.</p>
+<p>The last problematic command that sometimes appears is <code>touch</code>, which has no <code>cmd.exe</code> equivalent I could find. I have no good solution for this one if your Makefile relies on it. Thankfully, it&rsquo;s rare in practice.</p>
+<p><strong>A Better Build System Design?</strong></p>
+<p>All of this complexity could have been avoided if common file operations were built-in to make itself, as intrinsics. Ninja, for comparison, requires you to explicitly declare outputs, so it knows exactly what to delete without shell commands.</p>
+<p>However, Ninja lacks some of Make&rsquo;s pleasing &ldquo;dumbness&rdquo;, and is much less pleasant to write by hand. If you&rsquo;re designing a replacement for make, I&rsquo;d highly suggest limiting shell access and adding built-in operations for at least <code>rm</code>, <code>mkdir</code>, and <code>touch</code>. An escape hatch to the shell might still be needed for some unusual cases, but we shouldn&rsquo;t need shell commands just to delete a file. The fewer dependencies a build system has, the more robust it will be.</p>
+<p><strong>Bonus Debugging Tip</strong></p>
+<p>If you&rsquo;re debugging a makefile and want to see exactly what shell commands it runs (and it doesn&rsquo;t already have verbose output configured), you can use <code>make SHELL=&quot;sh -x&quot;</code> to trace it.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+
+  </footer>
+</article>
+    </main>
+    </body>
+
+</html>
