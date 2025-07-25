@@ -4,6 +4,9 @@ title = "File Descriptor Two"
 theme = "PaperMod"
 copyright = "© 2025 Peter0x44"
 
+# Use YAML for front matter by default
+metaDataFormat = "yaml"
+
 [params]
   showReadingTime = true
   showShareButtons = false
