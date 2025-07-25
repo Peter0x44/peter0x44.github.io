@@ -1,7 +1,7 @@
 ---
 title: "Make, shells and polyglot tests - How to write a cross-shell clean target."
 date: 2025-07-22T12:00:00Z
-draft: true
+draft: false
 comments: true
 ---
 
