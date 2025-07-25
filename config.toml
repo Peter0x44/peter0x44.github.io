@@ -15,6 +15,12 @@ metaDataFormat = "yaml"
   ShowCodeCopyButtons = true
   ShowRssButtonInSectionTermList = true
 
+[params.utterances]
+  repo = "peter0x44/peter0x44.github.io"
+  issueTerm = "pathname"
+  label = "utterances_comments"
+  theme = "preferred-color-scheme"
+
 [params.footer]
   text = ""
 

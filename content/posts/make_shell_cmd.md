@@ -1,7 +1,8 @@
 ---
 title: "Make, shells and polyglot tests - How to write a cross-shell clean target."
 date: 2025-07-22T12:00:00Z
-draft: false
+draft: true
+comments: true
 ---
 
 When executing various Makefiles with [w64devkit](https://github.com/skeeto/w64devkit), you can occasionally run across a Windows program with a Makefile written for cmd.exe. Often the only thing broken about them is the conventional `clean` target, which uses `del.exe` and will only work under `cmd.exe`.
