@@ -1,6 +1,6 @@
 ---
 title: "Cross Compilation Theory and Practice - from a Tooling Perspective"
-date: 2025-07-24T14:17:41+01:00
+date: 2025-07-28T14:17:41+01:00
 draft: false
 tags: ["programming", "compilers", "cross-compilation", "toolchains"]
 categories: ["tutorials"]
