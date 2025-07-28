@@ -7,7 +7,7 @@ categories: ["tutorials"]
 comments: true
 ---
 
-Cross compilation is a common task during development, but different compilers and programming languages handle it in their own ways, making various trade-offs and design decisions. I feel like I know a lot about how cross compilation works across different targets, tools and languages, so I figured it was time to condense my knowledge into a blog post. This is not a tutorial, but it still contains practically applicable knowledge. I don't claim to get every detail correct, merely explaining how things work to my understanding.
+Cross compilation is a common task during development, but different compilers and programming languages handle it in their own ways, and I wanted to write about the various flavors of trade-offs and design decisions that you will find across different tooling. I feel like I have absorbed a lot of information about how cross compilation works across different targets, tools and languages, so I figured it was time to condense my knowledge into a blog post. This is not a tutorial, but it still contains practically applicable knowledge. I don't claim to get every detail correct, merely explaining how things work to my understanding.
 
 Before diving into the specifics, let's establish some jargon that comes up repeatedly across different tools:
 
@@ -20,7 +20,7 @@ Before diving into the specifics, let's establish some jargon that comes up repe
 They are in a loose adhoc format that follows some rough conventions:
 CPU_TYPE-VENDOR-OPERATING_SYSTEM or CPU_TYPE-VENDOR-KERNEL-OPERATING_SYSTEM.
 
-A target triple doesn't really become "official" until a major toolchain or hardware vendor adopts it.
+A target triple doesn't really become "official" until a major toolchain, operating system, or hardware vendor adopts it.
 
 CPU_TYPE sometimes has processor features encoded into it, like i(3/4/5/6)86, or endianness when it differs from the conventional one for an architecture (powerpc64le, armeb, mipel).
 VENDOR can be omitted or replaced with `unknown`.
@@ -43,7 +43,7 @@ Now that I have explained the most essential terminology and theory required for
 GCC requires being built separately for every target triple you want to target.
 That is why you can typically find several separate packages of gcc for various targets in the repositories of popular distros.
 
-If you want to build gcc yourself, there are several target triples to consider when you are configuring, that are relevant to cross-compilation:
+If you want to build GCC yourself, there are several target triples to consider when you are configuring, that are relevant to cross-compilation:
 
 **Host**: The target triple the compiler runs on.
 
@@ -124,7 +124,40 @@ As for building a sysroot from scratch, at the time of writing glibc does not cu
 You can also use `zig` for its `zig cc` command. Zig comes pre-packaged with sysroots for many targets, including Windows and Linux using musl.
 https://andrewkelley.me/post/zig-cc-powerful-drop-in-replacement-gcc-clang.html
 
-Now that I have roughly covered how cross compilation works in C and C++ tooling, I will talk about some interesting approaches from other languages.
+
+### CMake
+
+Of course, a significant portion of the software you might want to cross compile depends on a build system of some sort. CMake is the most popular, and the one I have the most experience with, so I will cover it here.
+
+With CMake, you have to write a "toolchain file", which gives CMake some information about your toolchain.
+
+[CMake's documentation](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-linux) provides this example:
+```cmake
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(CMAKE_SYSROOT /home/devel/rasp-pi-rootfs)
+set(CMAKE_STAGING_PREFIX /home/devel/stage)
+
+set(tools /home/devel/gcc-4.7-linaro-rpi-gnueabihf)
+set(CMAKE_C_COMPILER ${tools}/bin/arm-linux-gnueabihf-gcc)
+set(CMAKE_CXX_COMPILER ${tools}/bin/arm-linux-gnueabihf-g++)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+```
+
+We can see some of the usual information, like sysroot, operating system, and processor. CMake has decided to make users specify that separately instead of trying to figure it from the target triple, which is probably a smart idea.
+
+CMAKE_STAGING_PREFIX is a separate directory outside of the sysroot that CMake can install libraries to, in case the sysroot isn't somewhere you have permissions to write.
+
+CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER tells cmake not to search for executables inside the target's sysroot. If you are cross compiling, the host system cannot run these.
+
+The last 3 variables tell CMake to ignore the host's libraries, headers, packages when searching. If you are cross compiling, these will not be compatible with the target.
+
+You pass this to CMake when configuring, using `cmake --toolchain-file my_cross_toolchain.cmake ...`.
 
 ### Go
 
@@ -145,3 +178,6 @@ If I had to make a minor criticism, it does not rely on standard target triples,
 
 Crystal is getting a mention because its [process of cross compilation is so unusual](https://crystal-lang.org/reference/1.17/syntax_and_semantics/cross-compilation.html), I have not seen it elsewhere. It emits an object file, along with a corresponding command to link it. You can either link it on the host with a normal cross compiling toolchain, or copy it to such a system and run the command there.
 
+## Conclusion
+
+This post has covered some of the major toolchains I'm familiar with, but there are many more out there - too many for me to possibly cover myself. I may expand this article a little in future, and feel free to describe how other tooling and languages work in the comments.
