@@ -1,5 +1,5 @@
 ---
-title: "Making a Universal Vector2 Type in C++"
+title: "Making a Universal Vector2 Type in C++ - Part 1: Library User Perspective"
 date: 2025-08-06T12:00:00Z
 draft: true
 tags: ["programming", "c++"]
@@ -21,7 +21,7 @@ Some more mindful libraries offer macro flags to prevent emitting declarations f
 #ifndef SOMELIB_VEC2_TYPE
 #define SOMELIB_VEC2_TYPE
 
-typedef struct { float x; float y } slVec2;
+    typedef struct { float x; float y; } slVec2;
 
 #endif
 ```
@@ -88,4 +88,6 @@ MyVec2 physicsPos = b2Body_GetPosition(bodyId);
 MyVec2 mousePos = GetMousePosition();
 ```
 
-From the perspective of a library user, this probably fits all your needs and you can stop reading here and implement this for the types you want to share between libraries.
+For most practical purposes, this approach solves the interoperability problem completely. If you're working on an application that uses multiple libraries, you can implement the conversion operators and converting constructors right away and eliminate a lot of conversions in your codebase.
+
+However, library authors face a different challenge: The type cannot know the details of the other dependencies that might be used alongside it, so it's not possible to provide the relevant conversion operators and converting constructors. This requires a more sophisticated approach using templates, which is the subject of part 2. 
