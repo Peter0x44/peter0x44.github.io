@@ -7,7 +7,7 @@ categories: ["tutorials"]
 comments: true
 ---
 
-In [part 1](../universal_vector2_pt1/), we looked at how application developers can create a universal Vector2 type that converts to and from different library types. This approach works great when you control the application code, but what if you're a library author? How can you design your Vector2 type to be automatically compatible with other libraries without knowing which ones your users might combine with yours?
+In [part 1](/posts/universal_vector2_pt1/), we looked at how application developers can create a universal Vector2 type that converts to and from different library types. This approach works great when you control the application code, but what if you're a library author? How can you design your Vector2 type to be automatically compatible with other libraries without knowing which ones your users might combine with yours?
 
 ## The Library Author's Dilemma
 
