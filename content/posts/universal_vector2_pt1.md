@@ -90,4 +90,4 @@ MyVec2 mousePos = GetMousePosition();
 
 For most practical purposes, this approach solves the interoperability problem completely. If you're working on an application that uses multiple libraries, you can implement the conversion operators and converting constructors right away and eliminate a lot of conversions in your codebase.
 
-However, library authors face a different challenge: The type cannot know the details of the other dependencies that might be used alongside it, so it's not possible to provide the relevant conversion operators and converting constructors. This requires a more sophisticated approach using templates, which is covered in [part 2](/posts/universal_vector2_cpp_pt2/).
+However, library authors face a different challenge: The type cannot know the details of the other dependencies that might be used alongside it, so it's not possible to provide the relevant conversion operators and converting constructors. This requires a more sophisticated approach using templates, which is covered in [part 2](/posts/universal_vector2_pt2/).
