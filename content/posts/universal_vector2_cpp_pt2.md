@@ -18,8 +18,8 @@ Consider these different Vector2 types that might exist in a user's codebase:
 ```cpp
 typedef struct { float x; float y;} b2Vec2;    // Box2D physics
 typedef struct { float x; float y;} Vector2;   // raylib graphics  
-struct Point2D { float x, y; };               // Custom math library
-struct Vec2f { float x, y; };                 // Another graphics lib
+struct Point2D { float x, y; };                // Custom math library
+struct Vec2f { float x, y; };                  // Another graphics lib
 ```
 
 Your library's Vector2 needs to work seamlessly with all of these, without knowing about them in advance.
@@ -51,9 +51,10 @@ We need to constrain our template to only work with Vector2-like types to avoid 
 In this blog post, I will be demonstrating a type with these constraints for conversion:
 1. Have `x` and `y` members that can be converted to `float`
 2. Can be constructed from two `float`s
-3. The type will support bidirectional conversion using both conversion operators (outgoing) and converting constructors (incoming)
+3. Support outgoing conversions to any type that has `x` and `y` members and can be constructed from two `float`s, including higher precision types like `double`
+4. Prevent implicit incoming conversions from types with different member types (like `double`)
 
-Some of these constraints are optional and can be omitted or changed depending on what kinds of types you want automatic conversions to/from. For example, you might choose to only allow exact type matches (no `float` <-> `double` conversions) (modify constraint 2), or only allow one-way conversions (skip constraint 3).
+These are just examples, and you should adjust them to match your specific requirements. For instance, you might allow only exact type matches, permit bidirectional conversions with any precision, or restrict conversions to only one direction.
 
 The implementation of these constraints varies dramatically depending on which C++ standard you're targeting. Let's see how this evolves from the modern versions down to the more complex legacy versions.
 
@@ -70,33 +71,46 @@ concept HasXYMembers = requires(T t) {
     { t.y } -> std::convertible_to<float>;
 };
 
+// C++20 concept to check if a type has x,y members that are exactly float
 template<typename T>
-concept ConstructibleFromXY = requires(float x, float y) {
-    T{x, y};
+concept HasFloatXYMembers = requires(T t) {
+    requires std::same_as<decltype(t.x), float>;
+    requires std::same_as<decltype(t.y), float>;
 };
 
 template<typename T>
-concept CompatibleVec2 = HasXYMembers<T> && 
-                        ConstructibleFromXY<T>;
+concept ConstructibleFromXY = requires(float x, float y) {
+    T{x, y};  // Check if T can be constructed using aggregate initialization
+};
+
+// Concept for outgoing conversions (allows any convertible type)
+template<typename T>
+concept CompatibleVec2Out = HasXYMembers<T> && 
+                           ConstructibleFromXY<T>;
+
+// Concept for incoming conversions (only allows floats)
+template<typename T>
+concept CompatibleVec2In = HasFloatXYMembers<T> && 
+                          ConstructibleFromXY<T>;
 
 struct MyVec2 {
     float x, y;
     
     MyVec2(float x = 0.0f, float y = 0.0f) : x(x), y(y) {}
     
-    // Converting constructor for incoming conversions
-    template<CompatibleVec2 T>
+    // Converting constructor - only allows floats
+    template<CompatibleVec2In T>
     MyVec2(const T& other) : x(other.x), y(other.y) {}
     
-    // Conversion operator for outgoing conversions
-    template<CompatibleVec2 T>
+    // Conversion operator - allows any convertible type
+    template<CompatibleVec2Out T>
     operator T() const {
         return T{x, y};
     }
 };
 ```
 
-The concepts approach is remarkably clear - you can read the code and immediately understand the requirements: types must have `x` and `y` members convertible to `float`, and must be constructible from two `float` values. When compilation fails, the compiler provides helpful diagnostics that directly reference the unsatisfied concept, making debugging straightforward.
+The concepts approach is very clear and self-documenting. You can immediately see that `CompatibleVec2In` is stricter (float members only) while `CompatibleVec2Out` is more permissive (any convertible type). This means `MyVec2` can output to a `DoubleVec2`, but won't accept one as input.
 
 ## C++17 Implementation with SFINAE
 
@@ -117,6 +131,19 @@ struct has_xy_members<T, std::void_t<
     std::is_convertible<decltype(std::declval<T>().y), float>
 > {};
 
+// Type trait to detect if a type has x and y members that are exactly float
+template<typename T, typename = void>
+struct has_float_xy_members : std::false_type {};
+
+template<typename T>
+struct has_float_xy_members<T, std::void_t<
+    decltype(std::declval<T>().x),
+    decltype(std::declval<T>().y)
+>> : std::conjunction<
+    std::is_same<decltype(std::declval<T>().x), float>,
+    std::is_same<decltype(std::declval<T>().y), float>
+> {};
+
 template<typename T, typename = void>
 struct is_constructible_from_xy : std::false_type {};
 
@@ -125,28 +152,39 @@ struct is_constructible_from_xy<T, std::void_t<
     decltype(T{std::declval<float>(), std::declval<float>()})
 >> : std::true_type {};
 
+// Type trait for outgoing conversions (allows any convertible type)
 template<typename T>
-struct is_compatible_vec2 : std::conjunction<
+struct is_compatible_vec2_out : std::conjunction<
     has_xy_members<T>,
     is_constructible_from_xy<T>
 > {};
 
+// Type trait for incoming conversions (only allows floats)
 template<typename T>
-constexpr bool is_compatible_vec2_v = is_compatible_vec2<T>::value;
+struct is_compatible_vec2_in : std::conjunction<
+    has_float_xy_members<T>,
+    is_constructible_from_xy<T>
+> {};
+
+template<typename T>
+constexpr bool is_compatible_vec2_out_v = is_compatible_vec2_out<T>::value;
+
+template<typename T>
+constexpr bool is_compatible_vec2_in_v = is_compatible_vec2_in<T>::value;
 
 struct MyVec2 {
     float x, y;
     
     MyVec2(float x = 0.0f, float y = 0.0f) : x(x), y(y) {}
     
-    // Converting constructor for incoming conversions
-    template<typename T, std::enable_if_t<is_compatible_vec2_v<T>, int> = 0>
+    // Converting constructor - only allows floats
+    template<typename T, std::enable_if_t<is_compatible_vec2_in_v<T>, int> = 0>
     MyVec2(const T& other) : x(other.x), y(other.y) {}
     
-    // Conversion operator for outgoing conversions
+    // Conversion operator - allows any convertible type
     template<typename T>
     operator T() const {
-        static_assert(is_compatible_vec2_v<T>, 
+        static_assert(is_compatible_vec2_out_v<T>, 
             "Target type must have x,y members and be constructible from (float, float)");
         return T{x, y};
     }
@@ -196,45 +234,69 @@ struct is_constructible_from_xy<T, void_t<
     decltype(T{std::declval<float>(), std::declval<float>()})
 >> : std::true_type {};
 
+// Type trait to detect if a type has x and y members that are exactly float
+template<typename T, typename = void>
+struct has_float_xy_members : std::false_type {};
+
 template<typename T>
-struct is_compatible_vec2 : conjunction<
+struct has_float_xy_members<T, void_t<
+    decltype(std::declval<T>().x),
+    decltype(std::declval<T>().y)
+>> : conjunction<
+    std::is_same<decltype(std::declval<T>().x), float>,
+    std::is_same<decltype(std::declval<T>().y), float>
+> {};
+
+// Type trait for outgoing conversions (allows any convertible type)
+template<typename T>
+struct is_compatible_vec2_out : conjunction<
     has_xy_members<T>,
     is_constructible_from_xy<T>
 > {};
 
-// C++11 doesn't have variable templates
+// Trait for incoming conversions (only allows floats)
 template<typename T>
-constexpr bool is_compatible_vec2_v() { return is_compatible_vec2<T>::value; }
+struct is_compatible_vec2_in : conjunction<
+    has_float_xy_members<T>,
+    is_constructible_from_xy<T>
+> {};
+
+// C++11 doesn't have variable templates, so we use function templates
+template<typename T>
+constexpr bool is_compatible_vec2_out_v() { return is_compatible_vec2_out<T>::value; }
+
+template<typename T>
+constexpr bool is_compatible_vec2_in_v() { return is_compatible_vec2_in<T>::value; }
 
 struct MyVec2 {
     float x, y;
     
     MyVec2(float x = 0.0f, float y = 0.0f) : x(x), y(y) {}
     
-    // Converting constructor for incoming conversions
+    // Converting constructor - only allows floats
     template<typename T>
-    MyVec2(const T& other, typename std::enable_if<is_compatible_vec2_v<T>(), int>::type = 0) 
+    MyVec2(const T& other, typename std::enable_if<is_compatible_vec2_in_v<T>(), int>::type = 0) 
         : x(other.x), y(other.y) {}
     
-    // Conversion operator for outgoing conversions
+    // Conversion operator - allows any convertible type
     template<typename T>
     operator T() const {
-        static_assert(is_compatible_vec2_v<T>(), 
+        static_assert(is_compatible_vec2_out_v<T>(), 
             "Target type must have x,y members and be constructible from (float, float)");
         return T{x, y};
     }
 };
 ```
 
-This C++11 version is quite inconvenient! We had to implement our own versions of `void_t` and `conjunction` since they don't exist yet. We also can't use variable templates, so `is_compatible_vec2_v` has to be a function template instead.
+This C++11 version is quite inconvenient! We had to implement our own versions of `void_t` and `conjunction` since they don't exist yet. We also can't use variable templates, so function templates have to be used instead.
 
 ## The Evolution of C++
 
 Looking at these three implementations provides an excellent demonstration of how C++ has evolved over time. The same functionality requires:
 
-- **C++20**: ~15 lines of clear, readable code with concepts
-- **C++17**: ~35 lines with complex SFINAE
-- **C++11**: ~50+ lines with manual implementation of missing standard library features
+- **C++20**: ~25 lines of clear, readable code with concepts
+- **C++17**: ~50 lines with complex SFINAE
+- **C++11**: ~70+ lines with manual implementation of missing standard library features
 
 Each newer standard makes the code much more concise and readable.
 
