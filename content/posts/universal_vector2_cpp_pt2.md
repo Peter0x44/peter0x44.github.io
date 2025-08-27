@@ -1,7 +1,7 @@
 ---
 title: "Making a Universal Vector2 Type in C++ - Part 2: Library Author Perspective"
-date: 2025-08-11T00:15:19+01:00
-draft: true
+date: 2025-08-06T12:30:00Z
+draft: false
 tags: ["programming", "c++", "templates"]
 categories: ["tutorials"]
 comments: true
