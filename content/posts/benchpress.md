@@ -134,9 +134,12 @@ For more control, specify individual configurations with `--config`:
 ```bash
 benchpress.py template.c \
   --config gcc:-O2 \
-  --config clang:-O3 \
+  --config gcc:-O3 \
+  --compare "gcc -O2,gcc -O3" \
   -o benchmark.c
 ```
+
+This generates a benchmark that compares `gcc -O3` to `gcc -O2`.
 
 ## Use Cases
 
@@ -149,5 +152,5 @@ Here is a short list of usecases for benchpress:
 
 ## Try It Out
 
-The tool is open source and available on [GitHub](https://github.com/Peter0x44/benchpress). Feel free to open issues, send me an email, or leave comments on this blog post. Contributions and feedback are welcome!
+The tool is open source and available on [GitHub](https://github.com/Peter0x44/benchpress). Feel free to open issues, send me an email, or leave comments on this blog post. Suggestions, contributions and feedback are welcome!
 
