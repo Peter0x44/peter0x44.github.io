@@ -140,7 +140,7 @@ It mostly serves the purpose of preventing misdetection by shoddy encoding detec
 **UTF-16 advantages:**
 - More compact for texts heavy in BMP characters (CJK languages)
 
-It should be clear that UTF-16 is inferior to UTF-8 in every important way.
+It should be clear that for a majority of use cases, UTF-8's advantages make it a more practical choice.
 
 ## Conclusion
 
