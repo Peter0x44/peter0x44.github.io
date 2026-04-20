@@ -8,6 +8,7 @@ copyright = "© 2025 Peter0x44"
 metaDataFormat = "yaml"
 
 [params]
+  author = "Peter0x44"
   showReadingTime = true
   showShareButtons = false
   showPostNavLinks = true
