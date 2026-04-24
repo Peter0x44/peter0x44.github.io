@@ -9,6 +9,8 @@ metaDataFormat = "yaml"
 
 [params]
   author = "Peter0x44"
+  defaultTheme = "dark"
+  disableThemeToggle = true
   showReadingTime = true
   showShareButtons = false
   showPostNavLinks = true
