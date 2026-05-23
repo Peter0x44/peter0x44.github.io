@@ -67,7 +67,7 @@ Skips building 32-bit target libraries.
 
 **`--enable-checking=release`**
 
-Worth knowing about if you are comparing against a GCC built from a git clone. Source tarballs default to `--enable-checking=release` (cheap assertions only), but git clones default to `--enable-checking=yes,extra`, which enables more internal consistency checks and measurably slows the compiler down. If a git-built GCC seems slower than expected, that is probably why.
+Worth knowing about if you are comparing a GCC release to an in-development version. Release branches default to `--enable-checking=release` (cheap assertions only), while trunk defaults to `--enable-checking=yes,extra`, which enables more internal consistency checks and slows the compiler down. If a trunk-based GCC seems slower than expected, that is probably why.
 
 You could also go further and build with `--enable-checking=no` to disable all assertions, which might squeeze out a bit more performance. I did not try that.
 
