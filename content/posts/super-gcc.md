@@ -82,10 +82,7 @@ It was configured likeso:
  /build/gcc/src/gcc/configure --enable-languages=ada,c,c++,d,fortran,go,lto,m2,objc,obj-c++,rust,cobol --enable-bootstrap --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://gitlab.archlinux.org/archlinux/packaging/packages/gcc/-/issues --with-build-config=bootstrap-lto --with-linker-hash-style=gnu --with-system-zlib --enable-cet=auto --enable-checking=release --enable-clocale=gnu --enable-default-pie --enable-default-ssp --enable-gnu-indirect-function --enable-gnu-unique-object --enable-libstdcxx-backtrace --enable-link-serialization=1 --enable-linker-build-id --enable-lto --enable-multilib --enable-plugin --enable-shared --enable-threads=posix --disable-libssp --disable-libstdcxx-pch --disable-werror --disable-fixincludes
  ```
 
-The important things for performance in the command line are:
- --with-build-config=bootstrap-lto
-
-I'm not entirely sure what all of them do, but if there other options have a major perf impact here, please tell me in the comments.
+I'm not entirely sure what all of the options do, but if there other options have a major perf impact here, please tell me in the comments.
 
 ## Benchmark Results                            
 
